@@ -1,11 +1,119 @@
 <!doctype html>
 <html>
-  <head><meta charset="utf-8"><title>CoinSage Pro</title></head>
-  <body style="font-family:Arial;padding:30px">
-    <h1>🚀 CoinSage Pro è online</h1>
-    <p>Test API:</p>
-    <ul>
-      <li><a href="/api/price?symbol=btc">/api/price?symbol=btc</a></li>
-    </ul>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CoinSage Pro</title>
+  <style>
+    body{font-family:Arial;margin:0;background:#0b0f14;color:#e8eef6}
+    header{padding:18px 22px;border-bottom:1px solid #1e293b}
+    .wrap{max-width:1000px;margin:0 auto;padding:22px}
+    .card{background:#0f172a;border:1px solid #1e293b;border-radius:14px;padding:16px;margin-bottom:14px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+    .btn{background:#2563eb;border:0;color:white;padding:10px 14px;border-radius:10px;cursor:pointer}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid #1e293b;text-align:left;font-size:14px}
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;background:#111827;border:1px solid #1e293b}
+    .muted{color:#94a3b8}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap row">
+      <div>
+        <div style="font-size:20px;font-weight:700">🚀 CoinSage Pro</div>
+        <div class="muted" id="status">Carico segnali…</div>
+      </div>
+      <div class="row">
+        <span class="pill">Auto-refresh: 60s</span>
+        <button class="btn" id="refreshBtn">Aggiorna</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="row">
+        <div>
+          <div style="font-weight:700">Top Signals (USDT)</div>
+          <div class="muted">Score 0–100 (demo). Prossimo step: RSI + trend + regime.</div>
+        </div>
+        <div class="pill" id="updatedAt">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Price</th>
+            <th>24h %</th>
+            <th>Volume (quote)</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="card muted">
+      Test API:
+      <a style="color:#93c5fd" href="/api/price?symbol=btc">/api/price?symbol=btc</a> ·
+      <a style="color:#93c5fd" href="/api/scan">/api/scan</a> ·
+      <a style="color:#93c5fd" href="/api/signals">/api/signals</a>
+    </div>
+  </div>
+
+<script>
+  const statusEl = document.getElementById("status");
+  const updatedAtEl = document.getElementById("updatedAt");
+  const tbody = document.getElementById("tbody");
+  const btn = document.getElementById("refreshBtn");
+
+  function fmt(n){
+    if(!Number.isFinite(n)) return "—";
+    return n.toLocaleString(undefined,{maximumFractionDigits:8});
+  }
+  function fmt2(n){
+    if(!Number.isFinite(n)) return "—";
+    return n.toLocaleString(undefined,{maximumFractionDigits:2});
+  }
+
+  async function load(){
+    btn.disabled = true;
+    statusEl.textContent = "Aggiorno segnali…";
+    try{
+      const r = await fetch("/api/signals");
+      const data = await r.json();
+
+      updatedAtEl.textContent = data.updatedAt ? new Date(data.updatedAt).toLocaleString() : "—";
+      tbody.innerHTML = "";
+
+      (data.signals || []).forEach(s=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><b>${s.symbol}</b></td>
+          <td>${fmt(s.last)}</td>
+          <td>${fmt2(s.changePct)}%</td>
+          <td>${fmt2(s.volQuote)}</td>
+          <td><b>${s.score}</b></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      statusEl.textContent = "✅ Online — segnali aggiornati";
+    }catch(e){
+      statusEl.textContent = "❌ Errore nel caricamento";
+    }finally{
+      btn.disabled = false;
+    }
+  }
+
+  btn.addEventListener("click", load);
+  load();
+  setInterval(load, 60000);
+</script>
+</body>
 </html>
